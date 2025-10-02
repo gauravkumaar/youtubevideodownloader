@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="en" data-bs-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>YouTube Downloader</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" href="{{ url_for('static', filename='app.css') }}">
+</head>
+<!-- Make the page fill the screen height and allow a sticky footer -->
+<body class="d-flex flex-column min-vh-100">
+
+  <header class="app-header">
+    <div class="container">
+      <h1 class="app-title">YouTube Video Downloader</h1>
+    </div>
+  </header>
+
+  <!-- Grow to push footer to the bottom when content is short -->
+  <main class="container py-4 flex-grow-1">
+
+    <!-- Form -->
+    <section class="section">
+      <div class="content-wrap">
+        <form id="form" class="form-flex" novalidate>
+          <label for="url" class="visually-hidden">YouTube URL</label>
+          <input id="url" name="url" type="url" class="input-lg" placeholder="Paste YouTube URL..." required>
+          <button id="startBtn" class="btn-primary-lg btn-slim" type="submit">Download Video</button>
+        </form>
+      </div>
+    </section>
+
+    <!-- Preview skeleton -->
+    <section id="preview-skel" class="section d-none">
+      <div class="content-wrap preview-wrap stack gap-2">
+        <div class="skeleton skeleton-thumb"></div>
+        <div class="skeleton skeleton-text w-75"></div>
+        <div class="row g-2 align-items-center">
+          <div class="col-auto"><div class="skeleton skeleton-avatar"></div></div>
+          <div class="col">
+            <div class="skeleton skeleton-text w-50 mb-1"></div>
+            <div class="skeleton skeleton-text w-25"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Preview -->
+    <section id="preview" class="section d-none">
+      <div class="content-wrap preview-wrap stack gap-2">
+        <img id="thumb" class="thumb" alt="thumbnail" loading="lazy" referrerpolicy="no-referrer">
+        <h2 id="title" class="title line-clamp-2"></h2>
+        <div class="row g-2 align-items-center">
+          <div class="col-auto">
+            <img id="channelAvatar" class="avatar" alt="avatar" loading="lazy" referrerpolicy="no-referrer">
+          </div>
+          <div class="col">
+            <div id="channelName" class="channel-name text-truncate"></div>
+            <div id="channelSubs" class="channel-subs text-secondary text-truncate"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Progress skeleton -->
+    <section id="progress-skel" class="section d-none">
+      <div class="content-wrap preview-wrap stack gap-2">
+        <div class="skeleton skeleton-text w-25"></div>
+        <div class="skeleton skeleton-bar"></div>
+        <div class="row g-2">
+          <div class="col-4"><div class="skeleton skeleton-chip"></div></div>
+          <div class="col-4"><div class="skeleton skeleton-chip"></div></div>
+          <div class="col-4"><div class="skeleton skeleton-chip"></div></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Progress / Controls (bordered ONLY here) -->
+    <section id="progressBlock" class="section d-none">
+      <div class="content-wrap preview-wrap bordered pad">
+        <div class="row align-items-center justify-content-between g-3 mb-2">
+          <div class="col-auto d-flex align-items-center gap-2">
+            <span id="statusBadge" class="pill">QUEUED</span>
+            <h3 class="h6 mb-0">Download</h3>
+          </div>
+          <div class="col-auto d-flex flex-wrap gap-2">
+            <button id="cancelBtn" class="btn-cancel btn-slim" type="button" title="Cancel current download">Cancel</button>
+            <button id="newBtnTop" class="btn-ghost btn-slim d-none" type="button" title="Start a new video">New Video</button>
+          </div>
+        </div>
+
+        <div id="pwrap" class="progress-wrap" aria-live="polite">
+          <div id="bar" class="progress-fill" style="width:0%;">0%</div>
+        </div>
+
+        <div class="metrics mt-3">
+          <span class="chip">Transferred: <strong id="downloaded">0 B</strong> / <span id="total">?</span></span>
+          <span class="chip">Speed: <strong id="speed">-</strong></span>
+          <span class="chip">ETA: <strong id="eta">-</strong></span>
+          <span class="chip" id="startTimeChip"><span id="startedAt">—</span></span>
+
+          <!-- Auto-deletes inline skeleton (progress section) -->
+          <span class="chip" id="autoDeleteChip">
+            <strong>Auto-deletes:</strong>
+            <span id="progADSkel" class="skel-inline"></span>
+            <span id="progADWrap" class="d-none"><span id="expiresAt">—</span></span>
+          </span>
+        </div>
+
+        <div id="errBox" class="error-wrap d-none mt-3">
+          <strong>Failed:</strong> <span id="errmsg" class="mono"></span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Cancel panel (same width as preview) -->
+    <section id="cancelBlock" class="section d-none">
+      <div class="content-wrap preview-wrap">
+        <div class="cancel-title">Download cancelled.</div>
+        <div class="btn-row">
+          <button id="retryBtn" class="btn-primary-lg btn-slim w-100" type="button">Retry</button>
+          <button id="newBtnCancel" class="btn-ghost btn-slim w-100" type="button">New Video</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Result (now bordered) -->
+    <section id="resultBlock" class="section d-none">
+      <div class="content-wrap preview-wrap bordered pad">
+        <div class="result-grid">
+          <div class="result-info">
+            <div class="mb-2">
+              <span class="ok">Ready.</span>
+              <span id="filename" class="mono filename"></span>
+            </div>
+            <div class="text-secondary small d-flex align-items-center gap-2">
+              <strong>Auto-deletes:</strong>
+              <span id="resultExpiresAt">—</span>
+            </div>
+          </div>
+          <div class="result-cta">
+            <a id="downloadLink" class="btn-success-lg btn-slim w-100 text-center" href="#" download>Download Video</a>
+            <button id="newBtnResult" class="btn-ghost btn-slim w-100" type="button">New Video</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Simple white text note fixed at the bottom -->
+  <footer class="mt-auto border-top">
+    <div class="container py-3">
+      <p class="mb-0 text-white small text-center">
+        If you’re seeing errors while downloading videos, you’ve reached a rate limit based on your IP address. This limit isn’t controlled by us. Try switching networks (e.g., from Wi-Fi to mobile data) or wait a while and try again.
+      </p>
+    </div>
+  </footer>
+
+  <!-- Toasts -->
+  <div class="toast-container position-fixed top-0 end-0 p-3" id="toastHolder"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="{{ url_for('static', filename='app.js') }}"></script>
+</body>
+</html>
