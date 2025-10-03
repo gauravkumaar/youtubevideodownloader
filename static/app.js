@@ -53,9 +53,9 @@ let currentCleanUrl = null;
 let pollTimer = null;
 
 // Toasts
-function showToast(type, message){
+function showToast(type, message) {
   const toast = document.createElement('div');
-  toast.className = `toast align-items-center text-bg-dark border-0 ${type==='success'?'toast-success':type==='error'?'toast-error':'toast-info'}`;
+  toast.className = `toast align-items-center text-bg-dark border-0 ${type === 'success' ? 'toast-success' : type === 'error' ? 'toast-error' : 'toast-info'}`;
   toast.role = 'alert'; toast.ariaLive = 'assertive'; toast.ariaAtomic = 'true';
   toast.innerHTML = `
     <div class="d-flex">
@@ -65,64 +65,66 @@ function showToast(type, message){
   toastHolder.appendChild(toast);
   const bsToast = new bootstrap.Toast(toast, { delay: 3500 });
   bsToast.show();
-  toast.addEventListener('hidden.bs.toast', ()=> toast.remove());
+  toast.addEventListener('hidden.bs.toast', () => toast.remove());
 }
 
 // URL sanitation (client)
-function cleanYouTubeUrl(raw){
-  try{
+function cleanYouTubeUrl(raw) {
+  try {
     const u = new URL(raw);
     const host = u.hostname.toLowerCase();
-    const allowed = ['youtube.com','www.youtube.com','m.youtube.com','youtu.be','music.youtube.com'];
-    if (!allowed.includes(host)) return { ok:false, error:'Only YouTube URLs are supported.' };
-    if (host === 'youtu.be'){
-      const id = u.pathname.replace(/^\/+/,'').split('/')[0];
-      if (!id) return { ok:false, error:'Invalid youtu.be URL.' };
-      return { ok:true, url:`https://www.youtube.com/watch?v=${id}`, kind:'video' };
+    const allowed = ['youtube.com', 'www.youtube.com', 'm.youtube.com', 'youtu.be', 'music.youtube.com'];
+    if (!allowed.includes(host)) return { ok: false, error: 'Only YouTube URLs are supported.' };
+    if (host === 'youtu.be') {
+      const id = u.pathname.replace(/^\/+/, '').split('/')[0];
+      if (!id) return { ok: false, error: 'Invalid youtu.be URL.' };
+      return { ok: true, url: `https://www.youtube.com/watch?v=${id}`, kind: 'video' };
     }
     const path = u.pathname || '/';
-    if (path.startsWith('/watch')){
+    if (path.startsWith('/watch')) {
       const v = u.searchParams.get('v');
-      if (!v) return { ok:false, error:'Missing video id.' };
-      return { ok:true, url:`https://www.youtube.com/watch?v=${v}`, kind:'video' };
+      if (!v) return { ok: false, error: 'Missing video id.' };
+      return { ok: true, url: `https://www.youtube.com/watch?v=${v}`, kind: 'video' };
     }
-    if (path.includes('/shorts/')){
+    if (path.includes('/shorts/')) {
       const parts = path.split('/').filter(Boolean);
       const idx = parts.indexOf('shorts');
-      if (idx === -1 || !parts[idx+1]) return { ok:false, error:'Invalid shorts URL.' };
-      return { ok:true, url:`https://www.youtube.com/shorts/${parts[idx+1]}`, kind:'short' };
+      if (idx === -1 || !parts[idx + 1]) return { ok: false, error: 'Invalid shorts URL.' };
+      return { ok: true, url: `https://www.youtube.com/shorts/${parts[idx + 1]}`, kind: 'short' };
     }
-    if (host === 'music.youtube.com' && path.startsWith('/watch')){
+    if (host === 'music.youtube.com' && path.startsWith('/watch')) {
       const v = u.searchParams.get('v');
-      if (!v) return { ok:false, error:'Missing video id.' };
-      return { ok:true, url:`https://www.youtube.com/watch?v=${v}`, kind:'video' };
+      if (!v) return { ok: false, error: 'Missing video id.' };
+      return { ok: true, url: `https://www.youtube.com/watch?v=${v}`, kind: 'video' };
     }
-    return { ok:false, error:'Only direct YouTube video or shorts URLs are supported.' };
-  }catch{
-    return { ok:false, error:'Invalid URL.' };
+    return { ok: false, error: 'Only direct YouTube video or shorts URLs are supported.' };
+  } catch {
+    return { ok: false, error: 'Invalid URL.' };
   }
 }
 
 // Helpers
-function show(el){ el.classList.remove('d-none'); }
-function hide(el){ el.classList.add('d-none'); }
-function focusInput(){ urlInput.focus({ preventScroll:true }); }
+function show(el) { el.classList.remove('d-none'); }
+function hide(el) { el.classList.add('d-none'); }
+function focusInput() { urlInput.focus({ preventScroll: true }); }
 
 // Preview skeleton controller
 const loader = {
-  need:0, done:0, armed:false, timeoutId:null,
-  reset(){ this.need=0; this.done=0; this.armed=false; clearTimeout(this.timeoutId); },
-  add(){ this.need++; },
-  mark(){ this.done++; if (this.armed && this.done>=this.need){ setTimeout(()=>{ hide(previewSkel); show(preview); }, 60); } },
-  arm(){ this.armed=true; if (this.need===0){ hide(previewSkel); show(preview); }
-         this.timeoutId=setTimeout(()=>{ hide(previewSkel); show(preview); }, 1000); }
+  need: 0, done: 0, armed: false, timeoutId: null,
+  reset() { this.need = 0; this.done = 0; this.armed = false; clearTimeout(this.timeoutId); },
+  add() { this.need++; },
+  mark() { this.done++; if (this.armed && this.done >= this.need) { setTimeout(() => { hide(previewSkel); show(preview); }, 60); } },
+  arm() {
+    this.armed = true; if (this.need === 0) { hide(previewSkel); show(preview); }
+    this.timeoutId = setTimeout(() => { hide(previewSkel); show(preview); }, 1000);
+  }
 };
 
 // Progress bar skeleton toggles
-function startBarSkeleton(){ pwrap?.classList.add('skel'); }
-function stopBarSkeleton(){ pwrap?.classList.remove('skel'); }
+function startBarSkeleton() { pwrap?.classList.add('skel'); }
+function stopBarSkeleton() { pwrap?.classList.remove('skel'); }
 
-function resetUI(){
+function resetUI() {
   [preview, previewSkel, progressSkel, progressBlock, resultBlock, cancelBlock, errBox].forEach(hide);
   titleEl.textContent = ''; channelName.textContent = ''; channelSubs.textContent = '';
   thumb.removeAttribute('src'); channelAvatar.removeAttribute('src');
@@ -139,24 +141,24 @@ function resetUI(){
   currentJobId = null;
 }
 
-function clearForNew(){
+function clearForNew() {
   resetUI();
   urlInput.value = '';
   focusInput();
 }
 
 // Cancel handling
-cancelBtn.addEventListener('click', async ()=>{
+cancelBtn.addEventListener('click', async () => {
   if (!currentJobId) return;
-  try{
-    const r = await fetch(`/api/cancel/${currentJobId}`, { method:'POST' }).then(r=>r.json());
-    if (r.ok){
-      showToast('info','Cancelling…');
-    }else{
+  try {
+    const r = await fetch(`/api/cancel/${currentJobId}`, { method: 'POST' }).then(r => r.json());
+    if (r.ok) {
+      showToast('info', 'Cancelling…');
+    } else {
       showToast('error', r.message || 'Failed to cancel.');
     }
-  }catch(e){
-    showToast('error','Failed to cancel.');
+  } catch (e) {
+    showToast('error', 'Failed to cancel.');
   }
 });
 
@@ -166,18 +168,18 @@ document.getElementById('newBtnCancel').addEventListener('click', clearForNew);
 document.getElementById('newBtnResult').addEventListener('click', clearForNew);
 
 // Retry from cancelled
-document.getElementById('retryBtn').addEventListener('click', async ()=>{
-  if (!currentCleanUrl){
-    showToast('error','No URL to retry.');
+document.getElementById('retryBtn').addEventListener('click', async () => {
+  if (!currentCleanUrl) {
+    showToast('error', 'No URL to retry.');
     return;
   }
   hide(cancelBlock);
   show(progressSkel);
-  try{
+  try {
     const start = await fetch('/api/start', {
-      method:'POST', headers:{'Content-Type':'application/json'},
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ url: currentCleanUrl })
-    }).then(r=>r.json());
+    }).then(r => r.json());
     if (!start.ok) throw new Error(start.error || 'Failed to restart download');
     currentJobId = start.job_id;
     hide(progressSkel); show(progressBlock);
@@ -185,15 +187,15 @@ document.getElementById('retryBtn').addEventListener('click', async ()=>{
     startBarSkeleton();
     show(cancelBtn); hide(newBtnTop);
     pollTimer = setInterval(poll, 900);
-    showToast('info','Retry started.');
-  }catch(err){
+    showToast('info', 'Retry started.');
+  } catch (err) {
     hide(progressSkel);
     showToast('error', err.message);
   }
 });
 
 // Submit flow
-form.addEventListener('submit', async (e)=>{
+form.addEventListener('submit', async (e) => {
   e.preventDefault();
   if (startBtn.disabled) return;
 
@@ -202,7 +204,7 @@ form.addEventListener('submit', async (e)=>{
 
   const raw = urlInput.value.trim();
   const cleaned = cleanYouTubeUrl(raw);
-  if (!cleaned.ok){
+  if (!cleaned.ok) {
     startBtn.disabled = false;
     showToast('error', cleaned.error);
     return;
@@ -213,28 +215,28 @@ form.addEventListener('submit', async (e)=>{
   show(previewSkel); show(progressSkel);
 
   // Probe (preview)
-  try{
+  try {
     const probe = await fetch('/api/probe', {
-      method:'POST', headers:{'Content-Type':'application/json'},
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ url: currentCleanUrl })
-    }).then(r=>r.json());
+    }).then(r => r.json());
     if (!probe.ok) throw new Error(probe.error || 'Probe failed');
     const meta = probe.meta || {};
 
     loader.reset();
-    if (meta.thumbnail){
+    if (meta.thumbnail) {
       loader.add();
-      thumb.onload = ()=>loader.mark();
-      thumb.onerror = ()=>loader.mark();
+      thumb.onload = () => loader.mark();
+      thumb.onerror = () => loader.mark();
       thumb.src = meta.thumbnail;
     } else {
       thumb.removeAttribute('src');
     }
 
     const name = meta.uploader || 'Unknown';
-    if (meta.channel_avatar){
-      channelAvatar.onload = ()=>{};
-      channelAvatar.onerror = ()=>{ channelAvatar.src = svgAvatar(name); };
+    if (meta.channel_avatar) {
+      channelAvatar.onload = () => { };
+      channelAvatar.onerror = () => { channelAvatar.src = svgAvatar(name); };
       channelAvatar.src = meta.channel_avatar;
     } else {
       channelAvatar.src = svgAvatar(name);
@@ -245,7 +247,7 @@ form.addEventListener('submit', async (e)=>{
     channelSubs.textContent = (meta.subscribers != null) ? formatSubs(meta.subscribers) : '— subscribers';
 
     loader.arm();
-  }catch(err){
+  } catch (err) {
     hide(previewSkel);
     showToast('error', err.message);
     startBtn.disabled = false;
@@ -253,11 +255,11 @@ form.addEventListener('submit', async (e)=>{
   }
 
   // Start download
-  try{
+  try {
     const start = await fetch('/api/start', {
-      method:'POST', headers:{'Content-Type':'application/json'},
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ url: currentCleanUrl })
-    }).then(r=>r.json());
+    }).then(r => r.json());
     if (!start.ok) throw new Error(start.error || 'Failed to start download');
 
     currentJobId = start.job_id;
@@ -265,41 +267,41 @@ form.addEventListener('submit', async (e)=>{
     // Progress bar shimmer ON until we detect status != queued
     startBarSkeleton();
     // Ensure Auto-deletes skeleton visible
-    show(progADSkel); hide(progADWrap); expiresAt.textContent='—';
+    show(progADSkel); hide(progADWrap); expiresAt.textContent = '—';
 
     pollTimer = setInterval(poll, 900);
-    showToast('info','Downloading started.');
-  }catch(err){
+    showToast('info', 'Downloading started.');
+  } catch (err) {
     hide(progressSkel);
     showToast('error', err.message);
     startBtn.disabled = false;
-  }finally{
+  } finally {
     startBtn.disabled = false;
   }
 });
 
 // Polling
-async function poll(){
+async function poll() {
   if (!currentJobId) return;
-  try{
-    const data = await fetch(`/api/progress/${currentJobId}`).then(r=>r.json());
+  try {
+    const data = await fetch(`/api/progress/${currentJobId}`).then(r => r.json());
     if (!data.ok) throw new Error(data.error || 'Progress error');
 
     if (data.started_at_ist) startedAt.textContent = `Started: ${data.started_at_ist}`;
 
     // Hide progress bar shimmer once we are past queued (download really started)
-    if (data.status && data.status.toLowerCase() !== 'queued'){
+    if (data.status && data.status.toLowerCase() !== 'queued') {
       stopBarSkeleton();
     }
 
-    if (data.expires_at_ist && (data.status === 'downloading' || data.status === 'processing' || data.status === 'finished')){
+    if (data.expires_at_ist && (data.status === 'downloading' || data.status === 'processing' || data.status === 'finished')) {
       expiresAt.textContent = data.expires_at_ist;
       hide(progADSkel); show(progADWrap);
     }
 
     updateProgress(data);
 
-    if (data.status === 'finished'){
+    if (data.status === 'finished') {
       clearInterval(pollTimer);
       hide(cancelBtn); show(newBtnTop);
 
@@ -307,36 +309,36 @@ async function poll(){
       if (data.download_url) downloadLink.href = data.download_url;
       resultExpiresAt.textContent = data.expires_at_ist || '—';
       show(resultBlock);
-    } else if (data.status === 'expired'){
+    } else if (data.status === 'expired') {
       clearInterval(pollTimer);
       showToast('error', 'This file has expired and was auto-deleted.');
       hide(cancelBtn); show(newBtnTop);
-    } else if (data.status === 'cancelled'){
+    } else if (data.status === 'cancelled') {
       clearInterval(pollTimer);
       showToast('info', 'Download cancelled.');
       hide(progressBlock); hide(resultBlock);
       show(cancelBlock);
-    } else if (data.status === 'error'){
+    } else if (data.status === 'error') {
       clearInterval(pollTimer);
       showToast('error', data.error || 'Unknown error');
       show(errBox); errmsgEl.textContent = data.error || 'Unknown error';
       hide(cancelBtn); show(newBtnTop);
     }
-  }catch(err){
+  } catch (err) {
     clearInterval(pollTimer);
     showToast('error', err.message);
     hide(cancelBtn); show(newBtnTop);
   }
 }
 
-function updateProgress(d){
+function updateProgress(d) {
   let pct = Number(d.progress || 0);
   if ((d.status || '') === 'processing' && pct < 99) pct = 99;
   pct = Math.max(0, Math.min(100, pct));
   bar.style.width = pct + '%';
   bar.textContent = pct.toFixed(0) + '%';
 
-  const displayStatus = (s)=>{
+  const displayStatus = (s) => {
     if (!s) return '—';
     s = s.toLowerCase();
     if (s === 'processing') return 'downloading';
@@ -350,7 +352,7 @@ function updateProgress(d){
   etaEl.textContent = d.eta != null ? (d.eta + 's') : '-';
 }
 
-function svgAvatar(name){
+function svgAvatar(name) {
   const initial = (name || '?').trim().charAt(0).toUpperCase();
   const bg = '#5566aa', fg = '#e9ecff';
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40">
@@ -362,12 +364,12 @@ function svgAvatar(name){
   return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
 }
 
-function formatSubs(n){
+function formatSubs(n) {
   n = Number(n);
-  const units = [['B',1],['K',1e3],['M',1e6],['B',1e9]];
-  for (let i = units.length-1; i>=0; i--){
-    if (n >= units[i][1]){
-      const val = (n/units[i][1]).toFixed(n>=100000?0:1).replace(/\.0$/,'');
+  const units = [['B', 1], ['K', 1e3], ['M', 1e6], ['B', 1e9]];
+  for (let i = units.length - 1; i >= 0; i--) {
+    if (n >= units[i][1]) {
+      const val = (n / units[i][1]).toFixed(n >= 100000 ? 0 : 1).replace(/\.0$/, '');
       return `${val}${units[i][0]} subscribers`;
     }
   }
@@ -375,7 +377,7 @@ function formatSubs(n){
 }
 
 // Init
-(function init(){
+(function init() {
   resetUI();
   focusInput();
 })();

@@ -71,5 +71,30 @@ def fetch_file(job_id):
 def api_recent():
     return jsonify({"ok": True, "jobs": DownloadManager.recent()})
 
+@app.errorhandler(404)
+def not_found(e):
+    # Example context you can show in the template
+    return render_template(
+        "error.html",
+        code=404,
+        title="Page not found",
+        message="The page you’re looking for doesn’t exist or was moved.",
+        path=request.path
+    ), 404
+
+# (Optional) handle 500 with the same template
+@app.errorhandler(500)
+def server_error(e):
+    return render_template(
+        "error.html",
+        code=500,
+        title="Something went wrong",
+        message="Please try again in a moment.",
+        path=request.path
+    ), 500
+
+
+
+
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=8000)
